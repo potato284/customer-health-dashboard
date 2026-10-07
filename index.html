@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞书客户使用健康度看板（示例）</title>
+<style>
+  :root{
+    --blue:#3370FF; --green:#2FBF71; --yellow:#F5A623; --red:#E5484D;
+    --bg:#F2F3F5; --card:#FFFFFF; --text:#1F2329; --sub:#646A73; --line:#E5E6EB;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);}
+  .page{max-width:1400px;margin:0 auto;padding:20px 24px 60px;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+  header h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;}
+  .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block;}
+  .badge-demo{background:#EAF2FF;color:var(--blue);font-size:12px;padding:3px 10px;border-radius:20px;font-weight:500;}
+  .subtitle{color:var(--sub);font-size:13px;margin-top:6px;}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+  .filters select{height:32px;border:1px solid var(--line);border-radius:6px;padding:0 10px;font-size:13px;background:#fff;color:var(--text);}
+  .filters .btn{height:32px;border:1px solid var(--line);border-radius:6px;padding:0 12px;font-size:13px;background:#fff;cursor:pointer;color:var(--sub);}
+  .filters .btn:hover{border-color:var(--blue);color:var(--blue);}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+  .kpi .label{font-size:13px;color:var(--sub);margin-bottom:8px;}
+  .kpi .value{font-size:26px;font-weight:700;line-height:1.1;}
+  .kpi .extra{font-size:12px;color:var(--sub);margin-top:6px;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .tab{padding:10px 18px;font-size:14px;cursor:pointer;color:var(--sub);border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none;}
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+  .card h3{font-size:14px;font-weight:600;margin-bottom:10px;}
+  .chart{width:100%;height:300px;}
+  .chart.tall{height:340px;}
+  .table-wrap{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:560px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1200px;}
+  th{position:sticky;top:0;background:#FAFBFC;color:var(--sub);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none;}
+  th:hover{color:var(--blue);}
+  td{padding:10px 12px;border-bottom:1px solid #F2F3F5;white-space:nowrap;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:#F5F8FF;}
+  .band{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+  .band.green{background:#E8F8EF;color:#1F9E5C;}
+  .band.yellow{background:#FFF4E0;color:#D98A00;}
+  .band.red{background:#FDECEC;color:#D03050;}
+  .up{color:#2FBF71;font-weight:600;}
+  .down{color:#E5484D;font-weight:600;}
+  .flat{color:var(--sub);}
+  .note{font-size:12px;color:var(--sub);margin-top:10px;line-height:1.7;}
+  /* modal */
+  .mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;overflow:auto;}
+  .mask.show{display:block;}
+  .modal{background:#fff;max-width:1080px;margin:4vh auto;border-radius:12px;padding:22px 24px;position:relative;}
+  .modal-close{position:absolute;top:14px;right:18px;border:none;background:#F2F3F5;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;color:var(--sub);}
+  .modal-close:hover{background:#E5E6EB;}
+  .modal h2{font-size:18px;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .modal .m-sub{color:var(--sub);font-size:12px;margin-bottom:14px;}
+  .kpis.small .value{font-size:20px;}
+  .alert-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin-right:6px;margin-bottom:4px;}
+  .alert-tag.red{background:#FDECEC;color:#D03050;}
+  .alert-tag.yellow{background:#FFF4E0;color:#D98A00;}
+  .empty{padding:40px;text-align:center;color:var(--sub);font-size:14px;}
+  @media (max-width:900px){.grid2,.grid4,.kpis{grid-template-columns:1fr 1fr;}}
+  @media (max-width:600px){.grid2,.grid4,.kpis{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1><span class="logo-dot"></span>飞书客户使用健康度看板 <span class="badge-demo">示例 · 虚拟数据</span></h1>
+      <div class="subtitle">数据周期：2026.03 – 2026.10（近 8 个月）｜全部为虚构示例数据，仅用于演示结构与交互，非真实客户数据</div>
+    </div>
+  </header>
+
+  <div class="filters">
+    <select id="fIndustry"><option value="">全部行业</option></select>
+    <select id="fCity"><option value="">全部城市</option></select>
+    <select id="fBand"><option value="">全部档位</option><option value="绿">🟢 健康</option><option value="黄">🟡 关注</option><option value="红">🔴 风险</option></select>
+    <button class="btn" id="btnReset">重置筛选</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">客户总数</div><div class="value" id="kCustomers">-</div><div class="extra" id="kCustomersSub"></div></div>
+    <div class="kpi"><div class="label">平均健康分</div><div class="value" id="kScore">-</div><div class="extra">满分 100</div></div>
+    <div class="kpi"><div class="label">健康档位分布</div><div class="value" id="kBands">-</div><div class="extra"><span class="dot" style="background:#2FBF71"></span><span id="kGreen">-</span>&nbsp;&nbsp;<span class="dot" style="background:#F5A623"></span><span id="kYellow">-</span>&nbsp;&nbsp;<span class="dot" style="background:#E5484D"></span><span id="kRed">-</span></div></div>
+    <div class="kpi"><div class="label">AI 月消耗（Token）</div><div class="value" id="kAi">-</div><div class="extra" id="kAiSub"></div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">总览</div>
+    <div class="tab" data-tab="customers">客户明细</div>
+    <div class="tab" data-tab="ai">AI 消耗榜</div>
+    <div class="tab" data-tab="alerts">预警清单</div>
+  </div>
+
+  <div class="panel active" id="panel-overview">
+    <div class="grid2">
+      <div class="card"><h3>健康档位分布</h3><div class="chart" id="cBand"></div></div>
+      <div class="card"><h3>风险客户 Top（健康分最低 5 家）</h3><div class="chart" id="cRisk"></div></div>
+      <div class="card"><h3>活跃用户趋势（DAU / WAU 合计）</h3><div class="chart" id="cMauTrend"></div></div>
+      <div class="card"><h3>AI 消耗与 AI 活跃用户趋势</h3><div class="chart" id="cAiTrend"></div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-customers">
+    <div class="table-wrap">
+      <table id="custTable">
+        <thead>
+          <tr>
+            <th data-key="name">客户</th><th data-key="industry">行业</th><th data-key="city">城市</th>
+            <th data-key="arr">ARR（万元）</th><th data-key="score">健康分</th><th data-key="band">档位</th>
+            <th data-key="dau">DAU</th><th data-key="wau">WAU</th><th data-key="actRate">激活率</th><th data-key="basePen">Base 渗透率</th>
+            <th data-key="hours">主版本时长</th><th data-key="mods">模块覆盖</th><th data-key="retention">月留存</th>
+            <th data-key="aiPen">AI 渗透率</th><th data-key="aiToken">AI 月消耗（万）</th>
+            <th data-key="wauMom">WAU 环比</th><th data-key="aiMom">AI 环比</th>
+          </tr>
+        </thead>
+        <tbody id="custBody"></tbody>
+      </table>
+    </div>
+    <div class="note">💡 点击表头可排序；点击任意客户行可下钻查看该客户的活跃 / AI 消耗 / 模块使用详情。</div>
+  </div>
+
+  <div class="panel" id="panel-ai">
+    <div class="grid4">
+      <div class="card"><h3>AI 月消耗 Top（Token 万）</h3><div class="chart tall" id="cAiTop"></div></div>
+      <div class="card"><h3>AI 渗透率排名（%）</h3><div class="chart tall" id="cAiPen"></div></div>
+      <div class="card"><h3>AI 功能消耗占比</h3><div class="chart tall" id="cAiFunc"></div></div>
+      <div class="card"><h3>AI 消耗环比变化</h3><div class="chart tall" id="cAiMom"></div></div>
+    </div>
+    <div class="note">AI 功能占比为示例分布，非真实口径。</div>
+  </div>
+
+  <div class="panel" id="panel-alerts">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="cursor:default">客户</th><th style="cursor:default">档位</th><th style="cursor:default">健康分</th><th style="cursor:default">预警项</th><th style="cursor:default">建议动作</th></tr></thead>
+        <tbody id="alertBody"></tbody>
+      </table>
+    </div>
+    <div class="note">预警规则（示例口径）：健康分 &lt; 60 → 健康分风险；WAU 环比 &lt; -5% → 活跃度下滑；AI 消耗环比 &lt; -10% → AI 消耗骤降；连续活跃周数 ≤ 2 → 长期沉默；Base 渗透率 &lt; 25% → Base 渗透偏低。</div>
+  </div>
+
+  <div class="note" style="margin-top:24px;padding-top:14px;border-top:1px solid var(--line)">
+    健康度模型（示例权重）：激活率 40% ＋ Base 渗透率 30% ＋ 主版本使用时长 30%（人均周使用小时，6 小时/周为满分）→ 0-100 分。档位：≥80 健康（绿）｜60-79 关注（黄）｜&lt;60 风险（红）。
+    <br>本看板为示例 Demo，后续接入真实数据时仅需替换内置虚拟数据集，页面结构与交互保持不变。
+  </div>
+</div>
+
+<!-- 客户详情弹层 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <h2 id="mName">-</h2>
+    <div class="m-sub" id="mSub">-</div>
+    <div class="kpis small">
+      <div class="kpi"><div class="label">激活率</div><div class="value" id="mAct">-</div><div class="extra" id="mMauSub">-</div></div>
+      <div class="kpi"><div class="label">Base 渗透率</div><div class="value" id="mPen">-</div></div>
+      <div class="kpi"><div class="label">主版本使用时长</div><div class="value" id="mHours">-</div><div class="extra" id="mRetSub">-</div></div>
+      <div class="kpi"><div class="label">AI 渗透率 / 月消耗</div><div class="value" id="mAi">-</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>近 8 个月活跃用户趋势（DAU / WAU）</h3><div class="chart" id="mMauChart"></div></div>
+      <div class="card"><h3>近 8 个月 AI 消耗趋势（Token 万）</h3><div class="chart" id="mAiChart"></div></div>
+      <div class="card"><h3>核心模块渗透率（%）</h3><div class="chart" id="mModChart"></div></div>
+      <div class="card"><h3>AI 功能消耗占比</h3><div class="chart" id="mAiFuncChart"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  var MODULES = ['IM','会议','文档','表格','Base','日历','审批','邮箱'];
+  var AI_FUNCS = ['智能伙伴','AI会议纪要','AI文档','AI搜索','妙记AI','AI邮箱'];
+  var AI_FUNC_SHARE = [28,24,18,14,10,6];
+  var MONTHS = ['3月','4月','5月','6月','7月','8月','9月','10月'];
+
+  var SHAPES = {
+    mauUp:      [0.72,0.76,0.80,0.85,0.90,0.94,0.98,1.00],
+    mauSteady:  [0.90,0.91,0.92,0.94,0.95,0.97,0.98,1.00],
+    mauSlight:  [1.03,1.02,1.02,1.01,1.01,1.00,1.00,1.00],
+    mauDecline: [1.12,1.10,1.08,1.07,1.06,1.06,1.06,1.00],
+    aiUp:       [0.30,0.38,0.46,0.55,0.65,0.78,0.90,1.00],
+    aiSteady:   [0.60,0.65,0.70,0.75,0.80,0.86,0.92,1.00],
+    aiDecline:  [1.15,1.12,1.10,1.08,1.05,1.02,1.00,0.85]
+  };
+
+  function genTrend(anchor, shape){
+    var out = [], i;
+    for(i=0;i<shape.length;i++){ out.push(Math.round(anchor * shape[i] / shape[7])); }
+    return out;
+  }
+  function bandOf(score){ return score >= 80 ? '绿' : (score >= 60 ? '黄' : '红'); }
+  function pct(n){ return (Math.round(n*1000)/10) + '%'; }
+  function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function mom(hist){ return (hist[7] - hist[6]) / hist[6]; }
+  function momClass(m){ return m > 0.005 ? 'up' : (m < -0.005 ? 'down' : 'flat'); }
+  function momText(m){ var s = (m>=0?'+':'') + (Math.round(m*1000)/10) + '%'; return s; }
+
+  var DATA = [
+    {name:'华辰科技', industry:'互联网', city:'深圳', arr:1200, staff:5000, activated:4200, mau:3600, wau:2900, dau:1900, mods:[92,85,78,62,66,70,55,40], retention:92, weeks:10, basePen:0.66, hours:7.2, aiActive:1400, aiToken:850,  mauShape:'mauUp', aiShape:'aiUp'},
+    {name:'星海制造', industry:'智能制造', city:'广州', arr:880, staff:8000, activated:6000, mau:3100, wau:2100, dau:1150, mods:[88,70,52,38,45,40,0,0], retention:78, weeks:6, basePen:0.45, hours:5.2, aiActive:620, aiToken:210,  mauShape:'mauSlight', aiShape:'aiSteady'},
+    {name:'云帆教育', industry:'教育', city:'深圳', arr:560, staff:3000, activated:2600, mau:2100, wau:1750, dau:1200, mods:[90,75,66,58,70,52,45,35], retention:88, weeks:8, basePen:0.70, hours:6.8, aiActive:780, aiToken:160,  mauShape:'mauUp', aiShape:'aiUp'},
+    {name:'南粤零售', industry:'零售', city:'东莞', arr:420, staff:6000, activated:2800, mau:1400, wau:850, dau:420, mods:[85,60,40,20,18,0,0,0], retention:62, weeks:3, basePen:0.18, hours:2.8, aiActive:210, aiToken:35,   mauShape:'mauDecline', aiShape:'aiDecline'},
+    {name:'恒达金融', industry:'金融', city:'深圳', arr:1500, staff:4500, activated:4300, mau:3900, wau:3400, dau:2300, mods:[95,90,88,80,60,85,75,65], retention:95, weeks:12, basePen:0.60, hours:7.5, aiActive:2100, aiToken:2300, mauShape:'mauUp', aiShape:'aiUp'},
+    {name:'天工物流', industry:'物流运输', city:'佛山', arr:620, staff:9000, activated:6800, mau:2600, wau:1800, dau:900, mods:[86,65,45,32,45,38,0,0], retention:72, weeks:5, basePen:0.45, hours:4.8, aiActive:520, aiToken:120,  mauShape:'mauSlight', aiShape:'aiSteady'},
+    {name:'领航医疗', industry:'医疗健康', city:'广州', arr:980, staff:5200, activated:3600, mau:2900, wau:2300, dau:1400, mods:[90,78,60,45,42,52,38,30], retention:86, weeks:7, basePen:0.42, hours:5.5, aiActive:1050, aiToken:480,  mauShape:'mauSteady', aiShape:'aiSteady'},
+    {name:'翡翠文旅', industry:'文旅', city:'珠海', arr:380, staff:2500, activated:1700, mau:1050, wau:700, dau:360, mods:[82,55,38,25,22,0,0,0], retention:70, weeks:4, basePen:0.22, hours:3.2, aiActive:240, aiToken:42,   mauShape:'mauDecline', aiShape:'aiDecline'},
+    {name:'广厦地产', industry:'地产建筑', city:'深圳', arr:760, staff:4000, activated:3100, mau:2100, wau:1500, dau:800, mods:[87,62,48,35,40,42,0,0], retention:75, weeks:5, basePen:0.40, hours:4.6, aiActive:500, aiToken:150,  mauShape:'mauSlight', aiShape:'aiSteady'},
+    {name:'芯途半导体', industry:'半导体', city:'深圳', arr:1350, staff:3800, activated:3500, mau:3200, wau:2700, dau:1800, mods:[94,86,80,72,58,74,68,60], retention:93, weeks:11, basePen:0.58, hours:7.0, aiActive:1650, aiToken:1350, mauShape:'mauUp', aiShape:'aiUp'},
+    {name:'蓝湾设计', industry:'专业服务', city:'深圳', arr:300, staff:1200, activated:950, mau:700, wau:520, dau:300, mods:[88,72,58,40,50,35,0,0], retention:80, weeks:6, basePen:0.50, hours:5.0, aiActive:300, aiToken:88,   mauShape:'mauSteady', aiShape:'aiSteady'},
+    {name:'红树电商', industry:'电商', city:'广州', arr:520, staff:4500, activated:2400, mau:1300, wau:800, dau:380, mods:[80,52,35,18,15,0,0,0], retention:60, weeks:2, basePen:0.15, hours:2.5, aiActive:180, aiToken:28,   mauShape:'mauDecline', aiShape:'aiDecline'}
+  ];
+
+  // 派生字段：健康分（激活率×40% + Base渗透率×30% + 主版本使用时长×30%）、趋势数组、环比等
+  DATA.forEach(function(c){
+    c.score = Math.round((c.activated / c.staff) * 40 + c.basePen * 30 + c.hours * 5);
+    c.band = bandOf(c.score);
+    c.actRate = c.activated / c.staff;
+    c.dauTrend = genTrend(c.dau, SHAPES[c.mauShape]);
+    c.wauTrend = genTrend(c.wau, SHAPES[c.mauShape]);
+    c.aiTrend = genTrend(c.aiToken, SHAPES[c.aiShape]);
+    c.aiPen = c.aiActive / c.mau;
+    c.modCount = 0;
+    c.mods.forEach(function(v){ if(v>0){ c.modCount++; } });
+    c.wauMom = mom(c.wauTrend);
+    c.aiMom = mom(c.aiTrend);
+  });
+
+  var BAND_COLOR = {绿:'#2FBF71', 黄:'#F5A623', 红:'#E5484D'};
+  var state = { industry:'', city:'', band:'', sortKey:'score', sortDir:-1 };
+  var charts = {};
+  var echartsReady = typeof window.echarts !== 'undefined';
+
+  function filtered(){
+    return DATA.filter(function(c){
+      if(state.industry && c.industry !== state.industry){ return false; }
+      if(state.city && c.city !== state.city){ return false; }
+      if(state.band && c.band !== state.band){ return false; }
+      return true;
+    });
+  }
+
+  function initChart(id, option){
+    if(!echartsReady){ return; }
+    var el = document.getElementById(id);
+    if(!el){ return; }
+    if(charts[id]){ charts[id].dispose(); }
+    var inst = echarts.init(el);
+    inst.setOption(option);
+    charts[id] = inst;
+  }
+
+  function baseTooltip(trigger){
+    return { trigger: trigger, triggerOn:'click', renderMode:'richText', confine:true,
+      textStyle:{ fontSize:11, lineHeight:15 }, padding:[6,8] };
+  }
+
+  /* ---------- KPI ---------- */
+  function renderKpis(list){
+    var n = list.length;
+    var sumScore = 0, sumAi = 0, g=0, y=0, r=0;
+    list.forEach(function(c){
+      sumScore += c.score; sumAi += c.aiToken;
+      if(c.band==='绿'){g++;} else if(c.band==='黄'){y++;} else {r++;}
+    });
+    document.getElementById('kCustomers').textContent = n;
+    document.getElementById('kCustomersSub').textContent = '覆盖 ' + list.length + ' 个行业 · ' + new Set(list.map(function(c){return c.city;})).size + ' 个城市';
+    document.getElementById('kScore').textContent = n ? (Math.round(sumScore/n*10)/10) : '-';
+    document.getElementById('kBands').innerHTML = '<span class="dot" style="background:'+BAND_COLOR['绿']+'"></span>'+g+'&nbsp;&nbsp;<span class="dot" style="background:'+BAND_COLOR['黄']+'"></span>'+y+'&nbsp;&nbsp;<span class="dot" style="background:'+BAND_COLOR['红']+'"></span>'+r;
+    document.getElementById('kGreen').textContent = g;
+    document.getElementById('kYellow').textContent = y;
+    document.getElementById('kRed').textContent = r;
+    document.getElementById('kAi').textContent = fmt(sumAi) + ' 万';
+    var aiMom = 0;
+    list.forEach(function(c){ aiMom += c.aiToken; });
+    // 环比：基于 AI 趋势上月的合计
+    var prev = 0;
+    list.forEach(function(c){ prev += c.aiTrend[6]; });
+    var mo = aiMom>0 ? (aiMom-prev)/prev : 0;
+    document.getElementById('kAiSub').innerHTML = '环比 <span class="'+momClass(mo)+'">' + momText(mo) + '</span>';
+  }
+
+  /* ---------- 总览 ---------- */
+  function renderOverview(list){
+    if(!echartsReady){ return; }
+    // 档位分布
+    var g=0,y=0,r=0;
+    list.forEach(function(c){ if(c.band==='绿'){g++;} else if(c.band==='黄'){y++;} else {r++;} });
+    initChart('cBand', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('item'), {formatter: function(p){
+        if(!p || !p.data){ return ''; }
+        return p.data.name + '：' + p.data.value + ' 家（' + p.percent + '%）';
+      }}),
+      legend:{ bottom:0, itemWidth:12, itemHeight:8, textStyle:{color:'#646A73',fontSize:11} },
+      color:['#2FBF71','#F5A623','#E5484D'],
+      series:[{
+        name:'档位', type:'pie', radius:['45%','70%'], center:['50%','46%'],
+        label:{ formatter:'{b}\n{d}%', color:'#1F2329', fontSize:11 },
+        data:[
+          {value:g, name:'健康（绿）'},
+          {value:y, name:'关注（黄）'},
+          {value:r, name:'风险（红）'}
+        ]
+      }]
+    });
+
+    // 风险客户 Top5
+    var sorted = list.slice().sort(function(a,b){ return a.score-b.score; }).slice(0,5).reverse();
+    initChart('cRisk', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter: function(ps){
+        if(!ps || !ps.length){ return ''; }
+        var p = ps[0];
+        return p.name + '<br/>健康分：' + p.value + '（' + p.data.band + '档）';
+      }}),
+      grid:{ left:80, right:24, top:10, bottom:24, containLabel:true },
+      xAxis:{ type:'value', max:100, axisLabel:{color:'#646A73',fontSize:11} },
+      yAxis:{ type:'category', data:sorted.map(function(c){return c.name;}), axisLabel:{color:'#1F2329',fontSize:11} },
+      series:[{
+        type:'bar', barWidth:16, label:{show:true, position:'right', color:'#646A73', fontSize:11},
+        data: sorted.map(function(c){ return {value:c.score, band:c.band, name:c.name, itemStyle:{color:BAND_COLOR[c.band], borderRadius:[0,6,6,0]}}; })
+      }]
+    });
+
+    // DAU / WAU 趋势
+    var dauTot = [0,0,0,0,0,0,0,0], wauTot = [0,0,0,0,0,0,0,0];
+    list.forEach(function(c){
+      for(var i=0;i<8;i++){ dauTot[i]+=c.dauTrend[i]; wauTot[i]+=c.wauTrend[i]; }
+    });
+    initChart('cMauTrend', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter: function(ps){
+        if(!ps || !ps.length){ return ''; }
+        var s = ps[0].axisValue + ' 月<br/>';
+        for(var i=0;i<ps.length;i++){
+          s += ps[i].marker + ps[i].seriesName + '：' + fmt(ps[i].value) + ' 人<br/>';
+        }
+        return s;
+      }}),
+      legend:{ top:0, itemWidth:12, itemHeight:8, textStyle:{color:'#646A73',fontSize:11} },
+      grid:{ left:16, right:20, top:34, bottom:24, containLabel:true },
+      xAxis:{ type:'category', data:MONTHS, axisLabel:{color:'#646A73',fontSize:11} },
+      yAxis:{ type:'value', axisLabel:{color:'#646A73',fontSize:11, formatter:function(v){return v>=10000 ? (v/10000)+'万' : v;}} },
+      series:[
+        { name:'DAU 合计', type:'line', smooth:true, data:dauTot, itemStyle:{color:'#3370FF'}, lineStyle:{color:'#3370FF', width:2.5}, symbolSize:6 },
+        { name:'WAU 合计', type:'line', smooth:true, data:wauTot, itemStyle:{color:'#7C8DFF'}, lineStyle:{color:'#7C8DFF', width:2.5}, symbolSize:6 }
+      ]
+    });
+
+    // AI 趋势
+    var aiTot=[0,0,0,0,0,0,0,0], aiUser=[0,0,0,0,0,0,0,0];
+    list.forEach(function(c){
+      for(var i=0;i<8;i++){ aiTot[i]+=c.aiTrend[i]; aiUser[i]+=Math.round(c.aiActive*c.aiTrend[i]/c.aiToken); }
+    });
+    initChart('cAiTrend', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter: function(ps){
+        if(!ps || !ps.length){ return ''; }
+        var s = ps[0].axisValue + ' 月<br/>';
+        for(var i=0;i<ps.length;i++){
+          s += ps[i].marker + ps[i].seriesName + '：' + (ps[i].seriesName.indexOf('Token')>=0 ? fmt(ps[i].value)+' 万' : fmt(ps[i].value)+' 人') + '<br/>';
+        }
+        return s;
+      }}),
+      legend:{ top:0, itemWidth:12, itemHeight:8, textStyle:{color:'#646A73',fontSize:11} },
+      grid:{ left:16, right:20, top:34, bottom:24, containLabel:true },
+      xAxis:{ type:'category', data:MONTHS, axisLabel:{color:'#646A73',fontSize:11} },
+      yAxis:[
+        { type:'value', name:'万', axisLabel:{color:'#646A73',fontSize:11} },
+        { type:'value', name:'人', splitLine:{show:false}, axisLabel:{color:'#646A73',fontSize:11} }
+      ],
+      series:[
+        { name:'AI Token 消耗', type:'bar', barWidth:14, yAxisIndex:0, data:aiTot, itemStyle:{color:'#7C8DFF', borderRadius:[4,4,0,0]} },
+        { name:'AI 活跃用户', type:'line', smooth:true, yAxisIndex:1, data:aiUser, itemStyle:{color:'#F5A623'}, lineStyle:{color:'#F5A623',width:2} }
+      ]
+    });
+  }
+
+  /* ---------- 明细表 ---------- */
+  function sortedList(list){
+    var arr = list.slice();
+    var key = state.sortKey, dir = state.sortDir;
+    arr.sort(function(a,b){
+      var va = a[key], vb = b[key];
+      if(typeof va === 'string'){ return va.localeCompare(vb, 'zh') * dir; }
+      return (va - vb) * dir;
+    });
+    return arr;
+  }
+  function renderTable(){
+    var list = sortedList(filtered());
+    var tbody = document.getElementById('custBody');
+    tbody.innerHTML = '';
+    if(!list.length){ tbody.innerHTML = '<tr><td colspan="17" class="empty">无符合筛选条件的客户</td></tr>'; return; }
+    list.forEach(function(c){
+      var tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', function(){ openDetail(c); });
+      var cells = [
+        {v:c.name, cls:''},
+        {v:c.industry, cls:''},
+        {v:c.city, cls:''},
+        {v:fmt(c.arr), cls:''},
+        {v:c.score, cls:'', strong:true},
+        {v:'', cls:'', band:c.band},
+        {v:fmt(c.dau), cls:''},
+        {v:fmt(c.wau), cls:''},
+        {v:pct(c.actRate), cls:''},
+        {v:pct(c.basePen), cls:''},
+        {v:c.hours + ' h/周', cls:''},
+        {v:c.modCount + ' / 8', cls:''},
+        {v:pct(c.retention/100), cls:''},
+        {v:pct(c.aiPen), cls:''},
+        {v:fmt(c.aiToken), cls:''},
+        {v:momText(c.wauMom), cls:momClass(c.wauMom)},
+        {v:momText(c.aiMom), cls:momClass(c.aiMom)}
+      ];
+      cells.forEach(function(cell){
+        var td = document.createElement('td');
+        if(cell.cls){ td.className = cell.cls; }
+        if(cell.band){
+          var b = document.createElement('span');
+          b.className = 'band ' + cell.band.toLowerCase();
+          b.textContent = cell.band + ' ' + c.score + '分';
+          td.appendChild(b);
+        } else if(cell.strong){
+          var b = document.createElement('b');
+          b.textContent = cell.v;
+          td.appendChild(b);
+        } else {
+          td.textContent = cell.v;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------- AI 榜 ---------- */
+  function renderAi(list){
+    if(!echartsReady){ return; }
+    var byToken = list.slice().sort(function(a,b){ return b.aiToken-a.aiToken; });
+    var byPen = list.slice().sort(function(a,b){ return b.aiPen-a.aiPen; });
+    initChart('cAiTop', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){ if(!ps||!ps.length){return '';} return ps[0].name + '<br/>AI 月消耗：' + fmt(ps[0].value) + ' 万 Token'; }}),
+      grid:{left:80,right:40,top:10,bottom:24,containLabel:true},
+      xAxis:{type:'value',axisLabel:{color:'#646A73',fontSize:11}},
+      yAxis:{type:'category',data:byToken.map(function(c){return c.name;}),axisLabel:{color:'#1F2329',fontSize:11}},
+      series:[{type:'bar',barWidth:13,label:{show:true,position:'right',color:'#646A73',fontSize:10,formatter:function(p){return fmt(p.value);}},
+        data:byToken.map(function(c){return {value:c.aiToken,itemStyle:{color:'#7C8DFF',borderRadius:[0,5,5,0]}};} )}]
+    });
+    initChart('cAiPen', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){ if(!ps||!ps.length){return '';} return ps[0].name + '<br/>AI 渗透率：' + pct(ps[0].value/100); }}),
+      grid:{left:80,right:40,top:10,bottom:24,containLabel:true},
+      xAxis:{type:'value',max:60,axisLabel:{color:'#646A73',fontSize:11,formatter:function(v){return v+'%';}}},
+      yAxis:{type:'category',data:byPen.map(function(c){return c.name;}),axisLabel:{color:'#1F2329',fontSize:11}},
+      series:[{type:'bar',barWidth:13,label:{show:true,position:'right',color:'#646A73',fontSize:10,formatter:function(p){return pct(p.value/100);}},
+        data:byPen.map(function(c){return {value:Math.round(c.aiPen*1000)/10,itemStyle:{color:'#58D68D',borderRadius:[0,5,5,0]}};} )}]
+    });
+    initChart('cAiFunc', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('item'), {formatter:function(p){ if(!p||!p.data){return '';} return p.data.name + '：' + p.data.value + '%'; }}),
+      legend:{bottom:0,type:'scroll',itemWidth:12,itemHeight:8,textStyle:{color:'#646A73',fontSize:11}},
+      color:['#3370FF','#7C8DFF','#58D68D','#F5A623','#E5484D','#9AA0A6'],
+      series:[{name:'AI功能',type:'pie',radius:['42%','68%'],center:['50%','44%'],label:{formatter:'{b} {d}%',color:'#1F2329',fontSize:10},
+        data:AI_FUNCS.map(function(f,i){ return {name:f, value:AI_FUNC_SHARE[i]}; })}]
+    });
+    var cats = list.slice().sort(function(a,b){ return b.aiMom-a.aiMom; });
+    initChart('cAiMom', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){ if(!ps||!ps.length){return '';} return ps[0].name + '<br/>AI 环比：' + momText(ps[0].value/100); }}),
+      grid:{left:80,right:40,top:10,bottom:24,containLabel:true},
+      xAxis:{type:'value',axisLabel:{color:'#646A73',fontSize:11,formatter:function(v){return v+'%';}}},
+      yAxis:{type:'category',data:cats.map(function(c){return c.name;}),axisLabel:{color:'#1F2329',fontSize:11}},
+      series:[{type:'bar',barWidth:13,label:{show:true,position:'right',color:'#646A73',fontSize:10,formatter:function(p){return momText(p.value/100);}},
+        data:cats.map(function(c){var m=Math.round(c.aiMom*1000)/10; return {value:m,itemStyle:{color:m>=0?'#58D68D':'#E5484D',borderRadius:[0,5,5,0]}};} )}]
+    });
+  }
+
+  /* ---------- 预警 ---------- */
+  function buildAlerts(){
+    var out = [];
+    DATA.forEach(function(c){
+      var tags = [];
+      if(c.score < 60){ tags.push({t:'健康分风险', lv:'red', d:'健康分 ' + c.score + '，低于 60 分'}); }
+      if(c.wauMom < -0.05){ tags.push({t:'活跃度下滑', lv:'yellow', d:'WAU 环比 ' + momText(c.wauMom)}); }
+      if(c.aiMom < -0.10){ tags.push({t:'AI 消耗骤降', lv:'red', d:'AI 消耗环比 ' + momText(c.aiMom)}); }
+      if(c.weeks <= 2){ tags.push({t:'长期沉默', lv:'yellow', d:'连续活跃仅 ' + c.weeks + ' 周'}); }
+      if(c.basePen < 0.25){ tags.push({t:'Base 渗透偏低', lv:'yellow', d:'Base 渗透率仅 ' + pct(c.basePen)}); }
+      if(tags.length){ out.push({c:c, tags:tags}); }
+    });
+    out.sort(function(a,b){ return a.c.score - b.c.score; });
+    return out;
+  }
+  function renderAlerts(){
+    var rows = buildAlerts();
+    var tbody = document.getElementById('alertBody');
+    tbody.innerHTML = '';
+    if(!rows.length){ tbody.innerHTML = '<tr><td colspan="5" class="empty">当前无预警客户 🎉</td></tr>'; return; }
+    rows.forEach(function(row){
+      var c = row.c;
+      var tr = document.createElement('tr');
+      tr.className = 'clickable';
+      tr.addEventListener('click', function(){ openDetail(c); });
+      var td1 = document.createElement('td'); td1.textContent = c.name; tr.appendChild(td1);
+      var td2 = document.createElement('td');
+      var b = document.createElement('span'); b.className = 'band ' + c.band.toLowerCase(); b.textContent = c.band; td2.appendChild(b); tr.appendChild(td2);
+      var td3 = document.createElement('td'); td3.innerHTML = '<b>' + c.score + '</b>'; tr.appendChild(td3);
+      var td4 = document.createElement('td');
+      row.tags.forEach(function(tag){
+        var s = document.createElement('span'); s.className = 'alert-tag ' + tag.lv; s.textContent = tag.t; s.title = tag.d; td4.appendChild(s);
+      });
+      tr.appendChild(td4);
+      var td5 = document.createElement('td'); td5.className = 'flat';
+      var acts = row.tags.map(function(tag){
+        if(tag.t==='健康分风险'){ return '安排健康度回访，定位功能未用起来的原因'; }
+        if(tag.t==='活跃度下滑'){ return '检查近期组织变动/新功能上线，制定激活方案'; }
+        if(tag.t==='AI 消耗骤降'){ return '排查 AI 配额与场景，推送 AI 最佳实践'; }
+        if(tag.t==='Base 渗透偏低'){ return '推动多维表格落地业务场景，培训种子用户'; }
+        return '触达关键决策人，启动沉默唤醒计划';
+      });
+      td5.textContent = acts.join('；'); tr.appendChild(td5);
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------- 详情弹层 ---------- */
+  function openDetail(c){
+    document.getElementById('mask').classList.add('show');
+    document.getElementById('mName').innerHTML = c.name + ' <span class="band ' + c.band.toLowerCase() + '">' + c.band + '档 · ' + c.score + '分</span>';
+    document.getElementById('mSub').textContent = c.industry + ' · ' + c.city + ' · ARR ' + fmt(c.arr) + ' 万元 · 员工 ' + fmt(c.staff) + ' 人 · DAU ' + fmt(c.dau) + ' / WAU ' + fmt(c.wau) + ' · 月留存 ' + pct(c.retention/100) + ' · 连续活跃 ' + c.weeks + ' 周';
+    document.getElementById('mAct').textContent = pct(c.actRate);
+    document.getElementById('mMauSub').textContent = '激活 ' + fmt(c.activated) + ' / 员工 ' + fmt(c.staff) + ' 人';
+    document.getElementById('mPen').textContent = pct(c.basePen);
+    document.getElementById('mHours').textContent = c.hours + ' h/周';
+    document.getElementById('mRetSub').textContent = '月留存 ' + pct(c.retention/100) + ' · 连续活跃 ' + c.weeks + ' 周';
+    document.getElementById('mAi').innerHTML = pct(c.aiPen) + ' / ' + fmt(c.aiToken) + ' 万';
+    if(!echartsReady){ return; }
+    initChart('mMauChart', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){
+        if(!ps || !ps.length){ return ''; }
+        var s = ps[0].axisValue + ' 月<br/>';
+        for(var i=0;i<ps.length;i++){
+          s += ps[i].marker + ps[i].seriesName + '：' + fmt(ps[i].value) + ' 人<br/>';
+        }
+        return s;
+      }}),
+      legend:{ top:0, itemWidth:12, itemHeight:8, textStyle:{color:'#646A73',fontSize:11} },
+      grid:{ left:16, right:20, top:30, bottom:24, containLabel:true },
+      xAxis:{ type:'category', data:MONTHS, axisLabel:{color:'#646A73',fontSize:11} },
+      yAxis:{ type:'value', axisLabel:{color:'#646A73',fontSize:11} },
+      series:[
+        { name:'DAU', type:'line', smooth:true, data:c.dauTrend, itemStyle:{color:'#3370FF'}, lineStyle:{color:'#3370FF', width:2.5}, symbolSize:6 },
+        { name:'WAU', type:'line', smooth:true, data:c.wauTrend, itemStyle:{color:'#7C8DFF'}, lineStyle:{color:'#7C8DFF', width:2.5}, symbolSize:6 }
+      ]
+    });
+    initChart('mAiChart', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){ if(!ps||!ps.length){return '';} return ps[0].axisValue + ' 月：' + fmt(ps[0].value) + ' 万 Token'; }}),
+      grid:{left:16,right:20,top:20,bottom:24,containLabel:true},
+      xAxis:{type:'category',data:MONTHS,axisLabel:{color:'#646A73',fontSize:11}},
+      yAxis:{type:'value',axisLabel:{color:'#646A73',fontSize:11}},
+      series:[{name:'AI Token',type:'bar',barWidth:16,data:c.aiTrend,itemStyle:{color:'#7C8DFF',borderRadius:[4,4,0,0]}}]
+    });
+    initChart('mModChart', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('axis'), {formatter:function(ps){ if(!ps||!ps.length){return '';} return ps[0].name + '：' + ps[0].value + '%'; }}),
+      grid:{left:50,right:30,top:10,bottom:20,containLabel:true},
+      xAxis:{type:'value',max:100,axisLabel:{color:'#646A73',fontSize:11,formatter:function(v){return v+'%';}}},
+      yAxis:{type:'category',data:MODULES,axisLabel:{color:'#1F2329',fontSize:11}},
+      series:[{type:'bar',barWidth:13,label:{show:true,position:'right',color:'#646A73',fontSize:10,formatter:function(p){return p.value+'%';}},
+        data:c.mods.map(function(v){ return {value:v,itemStyle:{color:v>0?'#3370FF':'#E5E6EB',borderRadius:[0,5,5,0]}}; })}]
+    });
+    initChart('mAiFuncChart', {
+      backgroundColor:'transparent',
+      tooltip: Object.assign(baseTooltip('item'), {formatter:function(p){ if(!p||!p.data){return '';} return p.data.name + '：' + p.data.value + '%'; }}),
+      legend:{bottom:0,type:'scroll',itemWidth:12,itemHeight:8,textStyle:{color:'#646A73',fontSize:10}},
+      color:['#3370FF','#7C8DFF','#58D68D','#F5A623','#E5484D','#9AA0A6'],
+      series:[{name:'AI功能',type:'pie',radius:['42%','66%'],center:['50%','42%'],label:{formatter:'{b} {d}%',color:'#1F2329',fontSize:10},
+        data:AI_FUNCS.map(function(f,i){ return {name:f, value:AI_FUNC_SHARE[i]}; })}]
+    });
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  document.getElementById('modalClose').addEventListener('click', function(){ document.getElementById('mask').classList.remove('show'); });
+  document.getElementById('mask').addEventListener('click', function(e){ if(e.target === this){ this.classList.remove('show'); } });
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      var name = t.getAttribute('data-tab');
+      document.getElementById('panel-' + name).classList.add('active');
+      if(name === 'overview'){ renderKpis(filtered()); renderOverview(filtered()); }
+      if(name === 'customers'){ renderTable(); }
+      if(name === 'ai'){ renderAi(filtered()); }
+      if(name === 'alerts'){ renderAlerts(); }
+      setTimeout(function(){ Object.keys(charts).forEach(function(k){ charts[k].resize(); }); }, 60);
+    });
+  });
+
+  ['fIndustry','fCity','fBand'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      state.industry = document.getElementById('fIndustry').value;
+      state.city = document.getElementById('fCity').value;
+      state.band = document.getElementById('fBand').value;
+      renderKpis(filtered()); renderOverview(filtered());
+      renderTable();
+      var active = document.querySelector('.tab.active').getAttribute('data-tab');
+      if(active === 'ai'){ renderAi(filtered()); }
+      if(active === 'alerts'){ renderAlerts(); }
+    });
+  });
+  document.getElementById('btnReset').addEventListener('click', function(){
+    state.industry=''; state.city=''; state.band='';
+    document.getElementById('fIndustry').value=''; document.getElementById('fCity').value=''; document.getElementById('fBand').value='';
+    renderKpis(filtered()); renderOverview(filtered()); renderTable();
+    var active = document.querySelector('.tab.active').getAttribute('data-tab');
+    if(active === 'ai'){ renderAi(filtered()); }
+    if(active === 'alerts'){ renderAlerts(); }
+  });
+
+  var sortMap = {
+    name:'name', industry:'industry', city:'city', arr:'arr', score:'score', band:'score',
+    dau:'dau', wau:'wau', actRate:'actRate', basePen:'basePen', hours:'hours', mods:'modCount', retention:'retention',
+    aiPen:'aiPen', aiToken:'aiToken', wauMom:'wauMom', aiMom:'aiMom'
+  };
+  document.querySelectorAll('#custTable th').forEach(function(th){
+    th.addEventListener('click', function(){
+      var key = sortMap[th.getAttribute('data-key')];
+      if(!key){ return; }
+      if(state.sortKey === key){ state.sortDir = -state.sortDir; } else { state.sortKey = key; state.sortDir = -1; }
+      renderTable();
+    });
+  });
+
+  /* ---------- 初始化 ---------- */
+  function initFilters(){
+    var inds = {}, cities = {};
+    DATA.forEach(function(c){ inds[c.industry]=1; cities[c.city]=1; });
+    var sel = document.getElementById('fIndustry');
+    Object.keys(inds).sort(function(a,b){return a.localeCompare(b,'zh');}).forEach(function(v){
+      var o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+    });
+    var sel2 = document.getElementById('fCity');
+    Object.keys(cities).sort(function(a,b){return a.localeCompare(b,'zh');}).forEach(function(v){
+      var o = document.createElement('option'); o.value = v; o.textContent = v; sel2.appendChild(o);
+    });
+  }
+  function start(){
+    initFilters();
+    if(!echartsReady){
+      document.querySelectorAll('.chart').forEach(function(el){ el.innerHTML = '<div class="empty">图表组件加载失败（CDN 不可用），数据表格仍可正常查看</div>'; });
+    }
+    renderKpis(filtered());
+    renderOverview(filtered());
+    renderTable();
+    renderAlerts();
+    window.addEventListener('resize', function(){ Object.keys(charts).forEach(function(k){ charts[k].resize(); }); });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+</script>
+</body>
+</html>
